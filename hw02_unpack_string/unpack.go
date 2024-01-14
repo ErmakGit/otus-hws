@@ -27,7 +27,7 @@ func Unpack(input string) (string, error) {
 		}
 
 		if ind+1 == len(runes) {
-			if string(char) == slashStr {
+			if string(char) == slashStr && !skipCheck {
 				return "", ErrInvalidString
 			}
 			res.WriteRune(char)
