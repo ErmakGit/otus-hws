@@ -1,8 +1,16 @@
 package hw03frequencyanalysis
 
 import (
+	"regexp"
 	"sort"
 	"strings"
+)
+
+const (
+	topLimit    = 10
+	dashSymbol  = "-"
+	spaceSymbol = " "
+	empty       = ""
 )
 
 type Frequency struct {
@@ -11,25 +19,32 @@ type Frequency struct {
 }
 
 func Top10(input string) []string {
-	strimedInput := strings.Trim(input, " ")
-	resultSlice := make([]string, 0, 10)
-	if strimedInput == "" {
+	reg := regexp.MustCompile("[a-zA-zа-яА-я-,.]*[a-zA-zа-яА-я-]")
+	resultSlice := make([]string, 0, topLimit)
+
+	strimedInput := strings.Trim(input, spaceSymbol)
+	if strimedInput == empty {
 		return resultSlice
 	}
 
 	wordList := strings.Fields(strimedInput)
 	frequencyMap := make(map[string]Frequency, 0)
 	for _, word := range wordList {
-		frequency, ok := frequencyMap[word]
+		if word == dashSymbol {
+			continue
+		}
+
+		regWord := reg.FindString(strings.ToLower(word))
+		frequency, ok := frequencyMap[regWord]
 		if !ok {
 			frequency = Frequency{
-				Word:  word,
-				Count: 1,
+				Word:  regWord,
+				Count: 0,
 			}
-		} else {
-			frequency.Count++
 		}
-		frequencyMap[word] = frequency
+
+		frequency.Count++
+		frequencyMap[regWord] = frequency
 	}
 
 	frequencySlice := make([]Frequency, 0, len(frequencyMap))
@@ -45,7 +60,7 @@ func Top10(input string) []string {
 		return frequencySlice[i].Count > frequencySlice[j].Count
 	})
 
-	for _, word := range frequencySlice[:10] {
+	for _, word := range frequencySlice[:topLimit] {
 		resultSlice = append(resultSlice, word.Word)
 	}
 
