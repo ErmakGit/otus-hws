@@ -52,6 +52,22 @@ func TestTop10(t *testing.T) {
 		require.Len(t, Top10("   "), 0)
 	})
 
+	t.Run("when text has less then 10 words", func(t *testing.T) {
+		testText := "when text has less then 10 words"
+		expected := []string{
+			"10",
+			"has",
+			"less",
+			"text",
+			"then",
+			"when",
+			"words",
+		}
+
+		require.Len(t, Top10(testText), 7)
+		require.Equal(t, expected, Top10(testText))
+	})
+
 	t.Run("positive test", func(t *testing.T) {
 		if taskWithAsteriskIsCompleted {
 			expected := []string{

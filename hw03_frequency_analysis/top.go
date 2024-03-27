@@ -19,7 +19,7 @@ type Frequency struct {
 }
 
 func Top10(input string) []string {
-	reg := regexp.MustCompile("[a-zA-zа-яА-я-,.]*[a-zA-zа-яА-я-]")
+	reg := regexp.MustCompile("[a-zA-zа-яА-я-,.0-9]*[a-zA-zа-яА-я-0-9]")
 	resultSlice := make([]string, 0, topLimit)
 
 	strimedInput := strings.Trim(input, spaceSymbol)
@@ -60,7 +60,11 @@ func Top10(input string) []string {
 		return frequencySlice[i].Count > frequencySlice[j].Count
 	})
 
-	for _, word := range frequencySlice[:topLimit] {
+	limit := topLimit
+	if len(frequencySlice) < limit {
+		limit = len(frequencySlice)
+	}
+	for _, word := range frequencySlice[:limit] {
 		resultSlice = append(resultSlice, word.Word)
 	}
 
