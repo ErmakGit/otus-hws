@@ -1,5 +1,7 @@
 package hw04lrucache
 
+import "sync"
+
 type List interface {
 	Len() int
 	Front() *ListItem
@@ -17,50 +19,47 @@ type ListItem struct {
 }
 
 type list struct {
-	Items []*ListItem
+	items     map[*ListItem]*ListItem
+	firstItem *ListItem
+	lastItem  *ListItem
+	once      sync.Once
 }
 
-func (l list) Len() int {
-	return len(l.Items)
+func (l *list) Len() int {
+	return len(l.items)
 }
 
 func (l *list) Front() *ListItem {
-	if l.Len() == 0 {
-		return nil
-	}
-
-	return l.Items[0]
+	return l.firstItem
 }
 
 func (l *list) Back() *ListItem {
-	if l.Len() == 0 {
-		return nil
-	}
-
-	return l.Items[l.Len()-1]
+	return l.lastItem
 }
 
 func (l *list) PushFront(v interface{}) *ListItem {
+	l.once.Do(l.init)
 	item := &ListItem{
 		Value: v,
 		Prev:  nil,
 		Next:  l.Front(),
 	}
-	newList := []*ListItem{
-		item,
-	}
-	newList = append(newList, l.Items...)
 
 	if l.Front() != nil {
 		l.Front().Prev = item
 	}
 
-	l.Items = newList
+	l.firstItem = item
+	if l.Len() == 0 {
+		l.lastItem = item
+	}
+	l.items[item] = item
 
 	return item
 }
 
 func (l *list) PushBack(v interface{}) *ListItem {
+	l.once.Do(l.init)
 	item := &ListItem{
 		Value: v,
 		Next:  nil,
@@ -70,23 +69,35 @@ func (l *list) PushBack(v interface{}) *ListItem {
 		l.Back().Next = item
 	}
 
-	l.Items = append(l.Items, item)
+	l.lastItem = item
+	if l.Len() == 0 {
+		l.firstItem = item
+	}
+	l.items[item] = item
 
 	return item
 }
 
+func (l *list) init() {
+	if l.Len() == 0 {
+		l.items = make(map[*ListItem]*ListItem, 0)
+	}
+}
+
 func (l *list) Remove(i *ListItem) {
-	ind := 0
-	for key, item := range l.Items {
-		if item == i {
-			ind = key
-			break
-		}
+	l.connectNeighbors(i)
+	delete(l.items, i)
+	l.updateBorderItems(i)
+}
+
+func (l *list) updateBorderItems(i *ListItem) {
+	if i == l.firstItem {
+		l.firstItem = i.Next
 	}
 
-	l.connectNeighbors(i)
-
-	l.Items = append(l.Items[:ind], l.Items[ind+1:]...)
+	if i == l.lastItem {
+		l.lastItem = i.Prev
+	}
 }
 
 func (l *list) connectNeighbors(i *ListItem) {
@@ -102,8 +113,9 @@ func (l *list) connectNeighbors(i *ListItem) {
 }
 
 func (l *list) MoveToFront(i *ListItem) {
+	value := i.Value
 	l.Remove(i)
-	l.PushFront(i.Value)
+	l.PushFront(value)
 }
 
 func NewList() List {
