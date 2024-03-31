@@ -12,9 +12,8 @@ type Cache interface {
 	Clear()
 }
 
-
 type Item struct {
-	Key Key
+	Key   Key
 	Value interface{}
 }
 
@@ -56,7 +55,7 @@ func (lc *lruCache) Set(key Key, value interface{}) bool {
 	if exist {
 		firstItem := lc.queue.Front()
 		updatedItem := Item{
-			Key: key,
+			Key:   key,
 			Value: value,
 		}
 		firstItem.Value = updatedItem
@@ -64,7 +63,7 @@ func (lc *lruCache) Set(key Key, value interface{}) bool {
 	} else {
 		lc.removeLast()
 		newItem := Item{
-			Key: key,
+			Key:   key,
 			Value: value,
 		}
 		lc.queue.PushFront(newItem)
