@@ -34,53 +34,66 @@ func NewCache(capacity int) Cache {
 
 func (lc *lruCache) Get(key Key) (interface{}, bool) {
 	lc.mu.Lock()
-	defer lc.mu.Unlock()
-
 	item, ok := lc.items[key]
+	lc.mu.Unlock()
+
 	if !ok {
 		return nil, false
 	}
 
+	lc.mu.Lock()
 	lc.queue.MoveToFront(item)
+	lc.mu.Unlock()
 
 	return lc.queue.Front().Value.(Item).Value, ok
 }
 
 func (lc *lruCache) Set(key Key, value interface{}) bool {
+	// lc.mu.Lock()
 	_, exist := lc.Get(key)
-
-	lc.mu.Lock()
-	defer lc.mu.Unlock()
+	// lc.mu.Unlock()
 
 	if exist {
+		lc.mu.Lock()
 		firstItem := lc.queue.Front()
+		lc.mu.Unlock()
+
 		updatedItem := Item{
 			Key:   key,
 			Value: value,
 		}
 		firstItem.Value = updatedItem
+
+		lc.mu.Lock()
 		lc.items[key] = firstItem
+		lc.mu.Unlock()
 	} else {
-		lc.removeLast()
+		lc.mu.Lock()
+		if len(lc.items) == lc.capacity {
+			lc.removeLast()
+		}
+		lc.mu.Unlock()
+
 		newItem := Item{
 			Key:   key,
 			Value: value,
 		}
+
+		lc.mu.Lock()
 		lc.queue.PushFront(newItem)
 		lc.items[key] = lc.queue.Front()
+		lc.mu.Unlock()
 	}
 
 	return exist
 }
 
 func (lc *lruCache) removeLast() {
-	if len(lc.items) == lc.capacity {
-		lastItem := lc.queue.Back()
-		lc.queue.Remove(lastItem)
+	lastItem := lc.queue.Back()
+	lc.queue.Remove(lastItem)
 
-		key := lastItem.Value.(Item).Key
-		delete(lc.items, key)
-	}
+	key := lastItem.Value.(Item).Key
+	delete(lc.items, key)
 }
 
 func (lc *lruCache) Clear() {
