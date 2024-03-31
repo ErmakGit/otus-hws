@@ -1,7 +1,5 @@
 package hw04lrucache
 
-import "sync"
-
 type List interface {
 	Len() int
 	Front() *ListItem
@@ -19,14 +17,13 @@ type ListItem struct {
 }
 
 type list struct {
-	items     map[*ListItem]*ListItem
 	firstItem *ListItem
 	lastItem  *ListItem
-	once      sync.Once
+	size      int
 }
 
 func (l *list) Len() int {
-	return len(l.items)
+	return l.size
 }
 
 func (l *list) Front() *ListItem {
@@ -38,7 +35,6 @@ func (l *list) Back() *ListItem {
 }
 
 func (l *list) PushFront(v interface{}) *ListItem {
-	l.once.Do(l.init)
 	item := &ListItem{
 		Value: v,
 		Prev:  nil,
@@ -53,13 +49,13 @@ func (l *list) PushFront(v interface{}) *ListItem {
 	if l.Len() == 0 {
 		l.lastItem = item
 	}
-	l.items[item] = item
+
+	l.size++
 
 	return item
 }
 
 func (l *list) PushBack(v interface{}) *ListItem {
-	l.once.Do(l.init)
 	item := &ListItem{
 		Value: v,
 		Next:  nil,
@@ -73,21 +69,16 @@ func (l *list) PushBack(v interface{}) *ListItem {
 	if l.Len() == 0 {
 		l.firstItem = item
 	}
-	l.items[item] = item
+
+	l.size++
 
 	return item
 }
 
-func (l *list) init() {
-	if l.Len() == 0 {
-		l.items = make(map[*ListItem]*ListItem, 0)
-	}
-}
-
 func (l *list) Remove(i *ListItem) {
 	l.connectNeighbors(i)
-	delete(l.items, i)
 	l.updateBorderItems(i)
+	l.size--
 }
 
 func (l *list) updateBorderItems(i *ListItem) {
