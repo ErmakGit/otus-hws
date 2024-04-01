@@ -8,7 +8,7 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type Task func() error
 
-func worker(id int, jobs <-chan Task, results chan<- bool, stop <-chan struct{}) {
+func worker(jobs <-chan Task, results chan<- bool, stop <-chan struct{}) {
 	select {
 	case <-stop:
 		return
@@ -39,11 +39,14 @@ func Run(tasks []Task, n, m int) error {
 	results := make(chan bool, len(tasks))
 	stop := make(chan struct{}, 1)
 
-	// wg:= sync.WaitGroup{}
+	// wg := sync.WaitGroup{}
 
 	for w := 1; w <= n; w++ {
 		// wg.Add(1)
-		go worker(w, jobs, results, stop)
+		// go func(w int) {
+		go worker(jobs, results, stop)
+		// wg.Done()
+		// }(w)
 	}
 	// wg.Wait()
 
@@ -54,7 +57,7 @@ func Run(tasks []Task, n, m int) error {
 
 	errorsCounter := 0
 	for res := 1; res <= len(tasks); res++ {
-		if errorsCounter == m {
+		if m > 0 && errorsCounter == m {
 			stop <- struct{}{}
 
 			return ErrErrorsLimitExceeded
