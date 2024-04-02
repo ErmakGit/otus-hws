@@ -2,70 +2,75 @@ package hw05parallelexecution
 
 import (
 	"errors"
+	"sync/atomic"
 )
 
 var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type Task func() error
 
-func worker(jobs <-chan Task, results chan<- bool, stop <-chan struct{}) {
-	select {
-	case <-stop:
-		return
-	default:
-	}
+func producer(tasks []Task, jobs chan<- Task, stop <-chan struct{}) {
+	for _, task := range tasks {
+		select {
+		case <-stop:
+			return
+		default:
+		}
 
-	for job := range jobs {
-		// fmt.Printf("Goroutine %v getting task \n", id)
-		execute(job, results)
+		jobs <- task
 	}
 }
 
-func execute(task Task, results chan<- bool) {
-	err := task()
-	executed := true
-	if err != nil {
-		executed = false
-	}
+func consumer(jobs <-chan Task, results chan<- bool, stop <-chan struct{}) {
+	for {
+		select {
+		case <-stop:
+			return
+		case job := <-jobs:
+			err := job()
+			executed := true
+			if err != nil {
+				executed = false
+			}
 
-	results <- executed
+			results <- executed
+		}
+	}
 }
 
 // Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
-	// Place your code here.
+	jobs := make(chan Task)
+	results := make(chan bool)
 
-	jobs := make(chan Task, len(tasks))
-	results := make(chan bool, len(tasks))
-	stop := make(chan struct{}, 1)
+	stopsCount := n + 1
+	stop := make(chan struct{}, stopsCount)
 
-	// wg := sync.WaitGroup{}
+	go producer(tasks, jobs, stop)
 
-	for w := 1; w <= n; w++ {
-		// wg.Add(1)
-		// go func(w int) {
-		go worker(jobs, results, stop)
-		// wg.Done()
-		// }(w)
+	for c := 1; c <= n; c++ {
+		go consumer(jobs, results, stop)
 	}
-	// wg.Wait()
 
-	for _, job := range tasks {
-		jobs <- job
-	}
-	close(jobs)
+	var errorsCounter int64
+	var executeCount int64
+	for result := range results {
+		atomic.AddInt64(&executeCount, 1)
 
-	errorsCounter := 0
-	for res := 1; res <= len(tasks); res++ {
-		if m > 0 && errorsCounter == m {
-			stop <- struct{}{}
+		if !result {
+			atomic.AddInt64(&errorsCounter, 1)
+		}
+
+		if m > 0 && int(errorsCounter) == m {
+			for w := 1; w <= stopsCount; w++ {
+				stop <- struct{}{}
+			}
 
 			return ErrErrorsLimitExceeded
 		}
 
-		result := <-results
-		if !result {
-			errorsCounter++
+		if int(executeCount) == len(tasks) {
+			return nil
 		}
 	}
 
