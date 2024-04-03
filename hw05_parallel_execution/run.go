@@ -2,6 +2,7 @@ package hw05parallelexecution
 
 import (
 	"errors"
+	"sync"
 	"sync/atomic"
 )
 
@@ -9,68 +10,58 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type Task func() error
 
-func producer(tasks []Task, jobs chan<- Task, stop <-chan struct{}) {
-	for _, task := range tasks {
-		select {
-		case <-stop:
-			return
-		default:
-		}
-
-		jobs <- task
-	}
+type Counter struct {
+	mu       sync.RWMutex
+	errors   int64
+	executed int64
 }
 
-func consumer(jobs <-chan Task, results chan<- bool, stop <-chan struct{}) {
-	for {
-		select {
-		case <-stop:
-			return
-		case job := <-jobs:
-			err := job()
-			executed := true
-			if err != nil {
-				executed = false
-			}
-
-			results <- executed
+func worker(tasks <-chan Task, counter *Counter) {
+	for task := range tasks {
+		err := task()
+		if err != nil {
+			counter.mu.Lock()
+			atomic.AddInt64(&counter.errors, 1)
+			counter.mu.Unlock()
 		}
+
+		counter.mu.Lock()
+		atomic.AddInt64(&counter.executed, 1)
+		counter.mu.Unlock()
 	}
 }
 
 // Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
 	jobs := make(chan Task)
-	results := make(chan bool)
+	var counter Counter
 
-	stopsCount := n + 1
-	stop := make(chan struct{}, stopsCount)
-
-	go producer(tasks, jobs, stop)
-
-	for c := 1; c <= n; c++ {
-		go consumer(jobs, results, stop)
+	for w := 1; w <= n; w++ {
+		go worker(jobs, &counter)
 	}
 
-	var errorsCounter int64
-	var executeCount int64
-	for result := range results {
-		atomic.AddInt64(&executeCount, 1)
+	for _, task := range tasks {
+		counter.mu.RLock()
+		errCount := counter.errors
+		counter.mu.RUnlock()
 
-		if !result {
-			atomic.AddInt64(&errorsCounter, 1)
-		}
-
-		if m > 0 && int(errorsCounter) == m {
-			for w := 1; w <= stopsCount; w++ {
-				stop <- struct{}{}
-			}
-
+		if m > 0 && int(errCount) > m {
+			close(jobs)
 			return ErrErrorsLimitExceeded
 		}
 
-		if int(executeCount) == len(tasks) {
-			return nil
+		jobs <- task
+	}
+
+	close(jobs)
+
+	for {
+		counter.mu.RLock()
+		executed := counter.executed
+		counter.mu.RUnlock()
+
+		if int(executed) == len(tasks) {
+			break
 		}
 	}
 
