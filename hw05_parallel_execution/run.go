@@ -10,40 +10,38 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type Task func() error
 
-type Counter struct {
-	mu       sync.RWMutex
-	errors   int64
-	executed int64
+type ErrorsCounter struct {
+	mu    sync.RWMutex
+	count int64
 }
 
-func worker(tasks <-chan Task, counter *Counter) {
+func worker(wg *sync.WaitGroup, tasks <-chan Task, errCounter *ErrorsCounter) {
 	for task := range tasks {
 		err := task()
 		if err != nil {
-			counter.mu.Lock()
-			atomic.AddInt64(&counter.errors, 1)
-			counter.mu.Unlock()
+			errCounter.mu.Lock()
+			atomic.AddInt64(&errCounter.count, 1)
+			errCounter.mu.Unlock()
 		}
-
-		counter.mu.Lock()
-		atomic.AddInt64(&counter.executed, 1)
-		counter.mu.Unlock()
 	}
+	wg.Done()
 }
 
 // Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
 	jobs := make(chan Task)
-	var counter Counter
+	var errCounter ErrorsCounter
 
+	wg := sync.WaitGroup{}
 	for w := 1; w <= n; w++ {
-		go worker(jobs, &counter)
+		wg.Add(1)
+		go worker(&wg, jobs, &errCounter)
 	}
 
 	for _, task := range tasks {
-		counter.mu.RLock()
-		errCount := counter.errors
-		counter.mu.RUnlock()
+		errCounter.mu.RLock()
+		errCount := errCounter.count
+		errCounter.mu.RUnlock()
 
 		if m > 0 && int(errCount) > m {
 			close(jobs)
@@ -54,16 +52,7 @@ func Run(tasks []Task, n, m int) error {
 	}
 
 	close(jobs)
-
-	for {
-		counter.mu.RLock()
-		executed := counter.executed
-		counter.mu.RUnlock()
-
-		if int(executed) == len(tasks) {
-			break
-		}
-	}
+	wg.Wait()
 
 	return nil
 }
