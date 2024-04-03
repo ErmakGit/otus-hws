@@ -14,21 +14,29 @@ type ErrorCounter struct {
 	count int64
 }
 
+func(er *ErrorCounter) Inc() {
+	er.mu.Lock()
+	er.count++
+	er.mu.Unlock()
+}
+
+func(er *ErrorCounter) Get() int64 {
+	er.mu.RLock()
+	countErr := er.count
+	er.mu.RUnlock()
+
+	return countErr
+}
+
 func worker(wg *sync.WaitGroup, tasks <-chan Task, errLimit int64, errCounter *ErrorCounter) {
 	for task := range tasks {
-		errCounter.mu.RLock()
-		countErr := errCounter.count
-		errCounter.mu.RUnlock()
-
-		if errLimit > 0 && countErr > errLimit {
+		if errLimit > 0 && errCounter.Get() > errLimit {
 			break
 		}
 
 		err := task()
 		if err != nil {
-			errCounter.mu.Lock()
-			errCounter.count++
-			errCounter.mu.Unlock()
+			errCounter.Inc()
 		}
 	}
 	wg.Done()
@@ -46,15 +54,8 @@ func Run(tasks []Task, n, m int) error {
 	}
 
 	for _, task := range tasks {
-		errCounter.mu.RLock()
-		countErr := errCounter.count
-		errCounter.mu.RUnlock()
-
-		if m > 0 && int(countErr) > m {
-			close(jobs)
-			wg.Wait()
-
-			return ErrErrorsLimitExceeded
+		if m > 0 && int(errCounter.Get()) > m {
+			break
 		}
 
 		jobs <- task
@@ -62,6 +63,10 @@ func Run(tasks []Task, n, m int) error {
 
 	close(jobs)
 	wg.Wait()
+
+	if m > 0 && int(errCounter.Get()) > m {
+		return ErrErrorsLimitExceeded
+	}
 
 	return nil
 }
