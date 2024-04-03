@@ -14,13 +14,13 @@ type ErrorCounter struct {
 	count int64
 }
 
-func(er *ErrorCounter) Inc() {
+func (er *ErrorCounter) Inc() {
 	er.mu.Lock()
 	er.count++
 	er.mu.Unlock()
 }
 
-func(er *ErrorCounter) Get() int64 {
+func (er *ErrorCounter) Get() int64 {
 	er.mu.RLock()
 	countErr := er.count
 	er.mu.RUnlock()
