@@ -25,6 +25,7 @@ func executeStage(in In, done In) Out {
 	out := make(Bi)
 	go func() {
 		defer close(out)
+
 		for {
 			select {
 			case <-done:
@@ -33,6 +34,7 @@ func executeStage(in In, done In) Out {
 				if !ok {
 					return
 				}
+
 				select {
 				case <-done:
 					return
