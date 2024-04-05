@@ -90,4 +90,35 @@ func TestPipeline(t *testing.T) {
 		require.Len(t, result, 0)
 		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
 	})
+
+	t.Run("part full stages completed before done", func(t *testing.T) {
+		in := make(Bi)
+		done := make(Bi)
+		data := []int{1, 2, 3, 4, 5}
+
+		// Abort after 800ms
+		abortDur := sleepPerStage * 4
+		go func() {
+			<-time.After(abortDur)
+			close(done)
+		}()
+
+		go func() {
+			for _, v := range data {
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]string, 0, len(data))
+		start := time.Now()
+		for s := range ExecutePipeline(in, done, stages...) {
+			result = append(result, s.(string))
+		}
+		elapsed := time.Since(start)
+
+		require.NotEmpty(t, result)
+		require.Less(t, len(result), len(data))
+		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
+	})
 }
