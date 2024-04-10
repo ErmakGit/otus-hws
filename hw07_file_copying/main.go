@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"flag"
+	"fmt"
 )
 
 var (
@@ -18,5 +20,17 @@ func init() {
 
 func main() {
 	flag.Parse()
-	// Place your code here.
+
+	err := Copy(from, to, offset, limit)
+	if err != nil {
+		if errors.Is(err, ErrOffsetOrLimitBellowZero) ||
+			errors.Is(err, ErrPathIsEmpty) ||
+			errors.Is(err, ErrUnsupportedFile) ||
+			errors.Is(err, ErrOffsetExceedsFileSize) {
+			fmt.Printf("Cannot copy file: %v", err)
+			return
+		}
+
+		panic(err)
+	}
 }
