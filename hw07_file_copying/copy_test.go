@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"gopkg.in/stretchr/testify.v1/require"
+	"github.com/stretchr/testify/require"
 )
 
 const testFile = "test.txt"
