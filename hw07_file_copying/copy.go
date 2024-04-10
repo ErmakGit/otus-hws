@@ -33,18 +33,18 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return err
 	}
 
-	inputFile, err := os.OpenFile(fromPath, os.O_RDONLY, 0644)
+	inputFile, err := os.OpenFile(fromPath, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("file doesn't exist: %v", err)
+			return fmt.Errorf("file doesn't exist: %w", err)
 		}
-		return fmt.Errorf("file cannot open: %v", err)
+		return fmt.Errorf("file cannot open: %w", err)
 	}
 	defer inputFile.Close()
 
 	fileStat, err := inputFile.Stat()
 	if err != nil {
-		return fmt.Errorf("failed getting file info: %v", err)
+		return fmt.Errorf("failed getting file info: %w", err)
 	}
 	fileSize := fileStat.Size()
 
@@ -54,7 +54,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 
 	outputFile, err := os.Create(toPath)
 	if err != nil {
-		return fmt.Errorf("file cannot create: %v", err)
+		return fmt.Errorf("file cannot create: %w", err)
 	}
 	defer outputFile.Close()
 
@@ -85,14 +85,14 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 
 		_, err := outputFile.Write(buf[:read])
 		if err != nil {
-			return fmt.Errorf("failed to write: %v", err)
+			return fmt.Errorf("failed to write: %w", err)
 		}
 
 		if errRead == io.EOF {
 			break
 		}
 		if errRead != nil {
-			return fmt.Errorf("failed to read: %v", err)
+			return fmt.Errorf("failed to read: %w", err)
 		}
 	}
 

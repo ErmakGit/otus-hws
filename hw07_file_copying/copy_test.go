@@ -16,7 +16,7 @@ func TestCopy(t *testing.T) {
 
 		require.EqualError(t, err, ErrPathIsEmpty.Error())
 
-		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		_, err = os.OpenFile(testFile, os.O_RDONLY, os.ModePerm)
 		require.Equal(t, true, os.IsNotExist(err))
 	})
 
@@ -25,7 +25,7 @@ func TestCopy(t *testing.T) {
 
 		require.EqualError(t, err, ErrPathIsEmpty.Error())
 
-		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		_, err = os.OpenFile(testFile, os.O_RDONLY, os.ModePerm)
 		require.Equal(t, true, os.IsNotExist(err))
 	})
 
@@ -34,7 +34,7 @@ func TestCopy(t *testing.T) {
 
 		require.EqualError(t, err, ErrOffsetOrLimitBellowZero.Error())
 
-		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		_, err = os.OpenFile(testFile, os.O_RDONLY, os.ModePerm)
 		require.Equal(t, true, os.IsNotExist(err))
 	})
 
@@ -43,7 +43,7 @@ func TestCopy(t *testing.T) {
 
 		require.EqualError(t, err, ErrOffsetOrLimitBellowZero.Error())
 
-		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		_, err = os.OpenFile(testFile, os.O_RDONLY, os.ModePerm)
 		require.Equal(t, true, os.IsNotExist(err))
 	})
 
@@ -52,7 +52,7 @@ func TestCopy(t *testing.T) {
 
 		require.EqualError(t, err, ErrOffsetExceedsFileSize.Error())
 
-		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		_, err = os.OpenFile(testFile, os.O_RDONLY, os.ModePerm)
 		require.Equal(t, true, os.IsNotExist(err))
 	})
 
@@ -65,7 +65,7 @@ func TestCopy(t *testing.T) {
 
 		require.EqualError(t, err, ErrUnsupportedFile.Error())
 
-		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		_, err = os.OpenFile(testFile, os.O_RDONLY, os.ModePerm)
 		require.Equal(t, true, os.IsNotExist(err))
 	})
 
@@ -80,7 +80,7 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 
-		file, err := os.OpenFile(testFile, os.O_RDONLY, 0644)
+		file, err := os.OpenFile(testFile, os.O_RDONLY, os.ModePerm)
 		require.NoError(t, err)
 
 		fileStat, err := file.Stat()
@@ -90,7 +90,7 @@ func TestCopy(t *testing.T) {
 		err = os.Remove(testFile)
 		require.NoError(t, err)
 
-		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		_, err = os.OpenFile(testFile, os.O_RDONLY, os.ModePerm)
 		require.Equal(t, true, os.IsNotExist(err))
 	})
 }
