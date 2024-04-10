@@ -1,55 +1,81 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	"gopkg.in/stretchr/testify.v1/require"
 )
 
+const testFile = "test.txt"
+
 func TestCopy(t *testing.T) {
 	t.Run("when from is empty", func(t *testing.T) {
-		err := Copy("", "out.txt", 0, 0)
+		err := Copy("", testFile, 0, 0)
 
 		require.EqualError(t, err, ErrPathIsEmpty.Error())
+
+		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		require.Equal(t, true, os.IsNotExist(err))
 	})
 
 	t.Run("when to is empty", func(t *testing.T) {
 		err := Copy("testdata/input.txt", "", 0, 0)
 
 		require.EqualError(t, err, ErrPathIsEmpty.Error())
+
+		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		require.Equal(t, true, os.IsNotExist(err))
 	})
 
 	t.Run("when offset below 0", func(t *testing.T) {
-		err := Copy("testdata/input.txt", "out.txt", -3, 0)
+		err := Copy("testdata/input.txt", testFile, -3, 0)
 
 		require.EqualError(t, err, ErrOffsetOrLimitBellowZero.Error())
+
+		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		require.Equal(t, true, os.IsNotExist(err))
 	})
 
 	t.Run("when limit below 0", func(t *testing.T) {
-		err := Copy("testdata/input.txt", "out.txt", 0, -5)
+		err := Copy("testdata/input.txt", testFile, 0, -5)
 
 		require.EqualError(t, err, ErrOffsetOrLimitBellowZero.Error())
+
+		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		require.Equal(t, true, os.IsNotExist(err))
 	})
 
 	t.Run("when offset exceeds file size", func(t *testing.T) {
-		err := Copy("testdata/input.txt", "out.txt", 100000000000, 0)
+		err := Copy("testdata/input.txt", testFile, 100000000000, 0)
 
 		require.EqualError(t, err, ErrOffsetExceedsFileSize.Error())
+
+		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		require.Equal(t, true, os.IsNotExist(err))
 	})
 
 	t.Run("when file with unsupported type", func(t *testing.T) {
-		err := Copy("testdata/input.zip", "out.txt", 0, 0)
+		err := Copy("testdata/input.zip", testFile, 0, 0)
 
 		require.EqualError(t, err, ErrUnsupportedFile.Error())
 
 		err = Copy("testdata/input.txt", "out", 0, 0)
 
 		require.EqualError(t, err, ErrUnsupportedFile.Error())
+
+		_, err = os.OpenFile(testFile, os.O_RDONLY, 0644)
+		require.Equal(t, true, os.IsNotExist(err))
+	})
+
+	t.Run("when from file does not exist", func(t *testing.T) {
+		inputFile := "testdata/input111.txt"
+		err := Copy(inputFile, testFile, 150, 100)
+		require.EqualError(t, err, fmt.Sprintf("file doesn't exist: open %s: no such file or directory", inputFile))
 	})
 
 	t.Run("successful copied", func(t *testing.T) {
-		testFile := "test.txt"
 		err := Copy("testdata/input.txt", testFile, 150, 100)
 
 		require.NoError(t, err)
