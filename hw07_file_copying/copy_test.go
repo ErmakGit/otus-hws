@@ -56,17 +56,10 @@ func TestCopy(t *testing.T) {
 		require.Equal(t, true, os.IsNotExist(err))
 	})
 
-	t.Run("when file without extension", func(t *testing.T) {
-		err := Copy("testdata/input", testFile, 0, 0)
+	t.Run("when input is dir", func(t *testing.T) {
+		err := Copy("testdata/", testFile, 0, 0)
 
 		require.EqualError(t, err, ErrUnsupportedFile.Error())
-
-		err = Copy("testdata/input.txt", "out", 0, 0)
-
-		require.EqualError(t, err, ErrUnsupportedFile.Error())
-
-		_, err = os.OpenFile(testFile, os.O_RDONLY, os.ModePerm)
-		require.Equal(t, true, os.IsNotExist(err))
 	})
 
 	t.Run("when from file does not exist", func(t *testing.T) {

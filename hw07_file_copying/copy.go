@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 
 	"github.com/cheggaaa/pb/v3"
 )
@@ -37,6 +36,10 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return fmt.Errorf("failed getting file info: %w", err)
 	}
 	fileSize := fileStat.Size()
+
+	if fileStat.IsDir() {
+		return ErrUnsupportedFile
+	}
 
 	if offset > fileSize {
 		return ErrOffsetExceedsFileSize
@@ -71,10 +74,6 @@ func validate(fromPath, toPath string, offset, limit int64) error {
 
 	if offset < 0 || limit < 0 {
 		return ErrOffsetOrLimitBellowZero
-	}
-
-	if path.Ext(fromPath) == "" || path.Ext(toPath) == "" {
-		return ErrUnsupportedFile
 	}
 
 	return nil
