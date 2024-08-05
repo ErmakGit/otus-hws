@@ -56,8 +56,8 @@ func TestCopy(t *testing.T) {
 		require.Equal(t, true, os.IsNotExist(err))
 	})
 
-	t.Run("when file with unsupported type", func(t *testing.T) {
-		err := Copy("testdata/input.zip", testFile, 0, 0)
+	t.Run("when file without extension", func(t *testing.T) {
+		err := Copy("testdata/input", testFile, 0, 0)
 
 		require.EqualError(t, err, ErrUnsupportedFile.Error())
 

@@ -12,10 +12,6 @@ import (
 )
 
 var (
-	SupportedExtensions = map[string]struct{}{
-		".txt": {},
-	}
-
 	ErrUnsupportedFile         = errors.New("unsupported file")
 	ErrOffsetExceedsFileSize   = errors.New("offset exceeds file size")
 	ErrPathIsEmpty             = errors.New("path is empty")
@@ -52,48 +48,22 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return ErrOffsetExceedsFileSize
 	}
 
-	outputFile, err := os.Create(toPath)
+	if limit == 0 || limit+offset > fileSize {
+		limit = fileSize - offset
+	}
+
+	_, err = inputFile.Seek(offset, io.SeekStart)
 	if err != nil {
-		return fmt.Errorf("file cannot create: %w", err)
-	}
-	defer outputFile.Close()
-
-	if limit == 0 {
-		limit = fileSize
+		return fmt.Errorf("set offset in resource file: %w", err)
 	}
 
-	maxBytes := limit
-	if (offset+limit)-fileSize > 0 {
-		maxBytes = fileSize - offset
-	}
+	limitReader := io.LimitReader(inputFile, limit)
+	bar := pb.Full.Start64(limit)
+	readerWithPB := bar.NewProxyReader(limitReader)
 
-	buf := make([]byte, fileBufSize)
-	writtenBytes := 0
-	bar := pb.StartNew(int(maxBytes))
-
-	for writtenBytes < int(maxBytes) {
-		time.Sleep(timeoutForBar)
-
-		read, errRead := inputFile.ReadAt(buf, offset)
-		if read > int(limit) {
-			read = int(limit)
-		}
-
-		bar.Add(read)
-		offset += int64(read)
-		writtenBytes += read
-
-		_, err := outputFile.Write(buf[:read])
-		if err != nil {
-			return fmt.Errorf("failed to write: %w", err)
-		}
-
-		if errRead == io.EOF {
-			break
-		}
-		if errRead != nil {
-			return fmt.Errorf("failed to read: %w", err)
-		}
+	err = copyFile(readerWithPB, toPath)
+	if err != nil {
+		return err
 	}
 
 	bar.Finish()
@@ -109,10 +79,24 @@ func validate(fromPath, toPath string, offset, limit int64) error {
 		return ErrOffsetOrLimitBellowZero
 	}
 
-	_, fromPathExtOk := SupportedExtensions[path.Ext(fromPath)]
-	_, toPathExtOk := SupportedExtensions[path.Ext(toPath)]
-	if !fromPathExtOk || !toPathExtOk {
+	if path.Ext(fromPath) == "" || path.Ext(toPath) == "" {
 		return ErrUnsupportedFile
+	}
+
+	return nil
+}
+
+func copyFile(resource io.Reader, copyPath string) error {
+	file, err := os.Create(copyPath)
+	if err != nil {
+		return fmt.Errorf("create file: %w", err)
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, resource)
+	if err != nil {
+		defer os.Remove(copyPath)
+		return fmt.Errorf("copy file: %w", err)
 	}
 
 	return nil
