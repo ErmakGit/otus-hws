@@ -31,6 +31,7 @@ func main() {
 			return
 		}
 
-		panic(err)
+		fmt.Printf("Unrecognized error: %v", err)
+		return
 	}
 }
