@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"time"
 
 	"github.com/cheggaaa/pb/v3"
 )
@@ -16,11 +15,6 @@ var (
 	ErrOffsetExceedsFileSize   = errors.New("offset exceeds file size")
 	ErrPathIsEmpty             = errors.New("path is empty")
 	ErrOffsetOrLimitBellowZero = errors.New("offset and limit must be greater than or equal to zero")
-)
-
-const (
-	fileBufSize   = 100
-	timeoutForBar = time.Second / 10
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
