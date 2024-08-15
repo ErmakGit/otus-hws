@@ -1,0 +1,6 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/ErmakGit/otus-hws/hw10_program_optimization
+BenchmarkGetDomainStat-8   	 2508318	       446.2 ns/op	    4145 B/op	       2 allocs/op
+PASS
+ok  	github.com/ErmakGit/otus-hws/hw10_program_optimization	3.811s
