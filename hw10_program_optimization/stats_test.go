@@ -1,8 +1,10 @@
+//go:build !bench
 // +build !bench
 
 package hw10programoptimization
 
 import (
+	"archive/zip"
 	"bytes"
 	"testing"
 
@@ -36,4 +38,20 @@ func TestGetDomainStat(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
 	})
+
+	t.Run("try to find empty", func(t *testing.T) {
+		result, err := GetDomainStat(bytes.NewBufferString(data), "")
+		require.ErrorIs(t, err, ErrorEmptyDomainProvided)
+		require.Equal(t, DomainStat{}, result)
+	})
+}
+
+func BenchmarkGetDomainStat(b *testing.B) {
+	r, _ := zip.OpenReader("testdata/users.dat.zip")
+	defer r.Close()
+	data, _ := r.File[0].Open()
+
+	for i := 0; i < b.N; i++ {
+		GetDomainStat(data, "biz")
+	}
 }
