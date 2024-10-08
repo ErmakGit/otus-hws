@@ -19,6 +19,8 @@ linters-settings:
           - github.com/stretchr/testify
           - github.com/cheggaaa/pb/v3
           - github.com/mailru/easyjson
+  exhaustive:
+    default-signifies-exhaustive: true
 
 issues:
   exclude-rules:
